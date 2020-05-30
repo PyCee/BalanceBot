@@ -11,9 +11,14 @@ int16_t Accel[3];
 float Pitch = 0.0, Yaw = 0.0;
 
 const uint8_t stepsPerRevolution = 200;
-uint8_t stepperOnePins[] = {6, 7, 8, 9};
-uint8_t stepperOut = 0b0011;
-float speed = 1.0;
+uint8_t stepperOnePins[] = {7, 8, 9, 10};
+uint8_t stepperTwoPins[] = {5, 4, 3, 2};
+uint8_t stepperOneOut = 0b0011;
+uint8_t stepperTwoOut = 0b0011;
+
+const int angleOffset = 15;
+const int minStepDelay = 2;
+const float maxPitch = 5.0;
 
 uint64_t PastTime = 0, DeltaTime = 0;
 
@@ -22,6 +27,7 @@ void setup(){
   SetupIMU();
   for(int i = 0; i < 4; ++i){
     pinMode(stepperOnePins[i], OUTPUT);
+    pinMode(stepperTwoPins[i], OUTPUT);
   }
   PastTime = millis();
   GetAccelerationInput();
@@ -34,12 +40,11 @@ void loop(){
   GetGyroInput();
   GetAccelerationInput();
   CalculatePitchAndYaw();
-  Serial.print("Pitch: " + String(Pitch) + "\n");
-  delay(10);
+  StepMotors();
+  delay(GetStepDelay());
 }
 float GetAccelerometerPitch(){
   float p = atan2f(Accel[0], Accel[1]) * 180.0 / 3.14159;
-  p = p - 90; // Shift angles so rests at 0
   if(p < -180.0) p += 360.0; // make no circle at 90 deg
   return p;
 }
@@ -99,9 +104,28 @@ void GetGyroInput(){
   Gyro[1] = Wire.read() << 8 | Wire.read();
   Gyro[2] = Wire.read() << 8 | Wire.read();
 }
+int GetStepDelay(){
+  float scale = 1.0 / max(0.1, min(1.0, abs((Pitch - angleOffset) / maxPitch)));
+  return max(1, min(50, minStepDelay * scale));
+}
 void StepMotors(){
-  stepperOut = ((stepperOut << 1) | (stepperOut >> 3)) & 0b1111;
-  for(int i = 0; i < 4; ++i){
-    digitalWrite(stepperOnePins[i], stepperOut & (1 << i));
+  if(Pitch > angleOffset){
+    ReverseStep();
+  } else {
+    Step();
+  }
+  for(int i = 0; i < 4; i++){
+    digitalWrite(stepperOnePins[i], stepperOneOut & (1 << i));
+    digitalWrite(stepperTwoPins[i], stepperTwoOut & (1 << i));
+  }
+  
+}
+void Step(){
+  stepperOneOut = ((stepperOneOut << 1) | (stepperOneOut >> 3)) & 0b1111;
+  stepperTwoOut = ((stepperTwoOut >> 1) | (stepperTwoOut << 3)) & 0b1111;
+}
+void ReverseStep(){
+  for(int i = 0; i < 3; i++){
+    Step();
   }
 }
