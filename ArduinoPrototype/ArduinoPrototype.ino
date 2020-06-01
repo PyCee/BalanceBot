@@ -16,9 +16,10 @@ uint8_t stepperTwoPins[] = {5, 4, 3, 2};
 uint8_t stepperOneOut = 0b0011;
 uint8_t stepperTwoOut = 0b0011;
 
-const int angleOffset = 15;
-const int minStepDelay = 2;
-const float maxPitch = 5.0;
+float targetAngle = 15;
+const int MIN_STEP_DELAY_MS = 2;
+const float MAX_PITCH_OFFSET = 5.0;
+const float P = MIN_STEP_DELAY_MS / MAX_PITCH_OFFSET;
 
 uint64_t PastTime = 0, DeltaTime = 0;
 
@@ -41,12 +42,10 @@ void loop(){
   GetAccelerationInput();
   CalculatePitchAndYaw();
   StepMotors();
-  delay(GetStepDelay());
+  delay(GetMSBeforeNextStep());
 }
 float GetAccelerometerPitch(){
-  float p = atan2f(Accel[0], Accel[1]) * 180.0 / 3.14159;
-  if(p < -180.0) p += 360.0; // make no circle at 90 deg
-  return p;
+  return atan2f(Accel[0], Accel[1]) * 180.0 / 3.14159;
 }
 void CalculatePitchAndYaw(){
   // http://www.pieter-jan.com/node/11
@@ -54,7 +53,7 @@ void CalculatePitchAndYaw(){
   Pitch += Gyro[2] * GYROSCOPE_SENSITIVITY * DeltaTime / 1000.0;
   int forceMagnitude = abs(Accel[0]) + abs(Accel[1]) + abs(Accel[2]);
   forceMagnitude *= ACCELEROMETER_SENSITIVITY;
-  if(forceMagnitude > -2.0 && forceMagnitude < 2.0){
+  if(abs(forceMagnitude) < 2.0){
     // If there is not a lot of force
     float p = GetAccelerometerPitch();
     Pitch = Pitch * GYRO_WEIGHT + p * (1.0 - GYRO_WEIGHT);
@@ -104,28 +103,28 @@ void GetGyroInput(){
   Gyro[1] = Wire.read() << 8 | Wire.read();
   Gyro[2] = Wire.read() << 8 | Wire.read();
 }
-int GetStepDelay(){
-  float scale = 1.0 / max(0.1, min(1.0, abs((Pitch - angleOffset) / maxPitch)));
-  return max(1, min(50, minStepDelay * scale));
+int GetMSBeforeNextStep(){
+  float error = abs(targetAngle - Pitch);
+  float result = error * P;
+  float reciprocal = 1.0 / max(0.01, result); // max is to avoid dividing by zero
+  return max(MIN_STEP_DELAY_MS, reciprocal);
 }
 void StepMotors(){
-  if(Pitch > angleOffset){
-    ReverseStep();
-  } else {
+  if(Pitch < targetAngle){
     Step();
+  } else {
+    ReverseStep();
   }
   for(int i = 0; i < 4; i++){
     digitalWrite(stepperOnePins[i], stepperOneOut & (1 << i));
     digitalWrite(stepperTwoPins[i], stepperTwoOut & (1 << i));
   }
-  
 }
 void Step(){
   stepperOneOut = ((stepperOneOut << 1) | (stepperOneOut >> 3)) & 0b1111;
   stepperTwoOut = ((stepperTwoOut >> 1) | (stepperTwoOut << 3)) & 0b1111;
 }
 void ReverseStep(){
-  for(int i = 0; i < 3; i++){
-    Step();
-  }
+  stepperOneOut = ((stepperOneOut >> 1) | (stepperOneOut << 3)) & 0b1111;
+  stepperTwoOut = ((stepperTwoOut << 1) | (stepperTwoOut >> 3)) & 0b1111;
 }
