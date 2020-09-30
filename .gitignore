@@ -1,2 +1,2 @@
-BalanceBot/*
-~BalanceBot/*.c
+avr_balance_bot/*
+!avr_balance_bot/main.c

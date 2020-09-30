@@ -11,8 +11,8 @@ int16_t Accel[3];
 float Pitch = 0.0, Yaw = 0.0;
 
 const uint8_t stepsPerRevolution = 200;
-uint8_t stepperOnePins[] = {7, 8, 9, 10};
-uint8_t stepperTwoPins[] = {5, 4, 3, 2};
+uint8_t stepperOnePins[] = {8, 9, 10, 11};
+uint8_t stepperTwoPins[] = {2, 3, 4, 5};
 uint8_t stepperOneOut = 0b0011;
 uint8_t stepperTwoOut = 0b0011;
 
@@ -87,7 +87,7 @@ void GetAccelerationInput() {
   Wire.beginTransmission(MPU); 
   Wire.write(0x3B); 
   Wire.endTransmission();
-  Wire.requestFrom(MPU,6); 
+  Wire.requestFrom(MPU,(uint8_t)6); 
   while(Wire.available() < 6);
   Accel[0] = Wire.read()<<8|Wire.read(); 
   Accel[1] = Wire.read()<<8|Wire.read(); 
@@ -97,7 +97,7 @@ void GetGyroInput(){
   Wire.beginTransmission(MPU);
   Wire.write(0x43);
   Wire.endTransmission();
-  Wire.requestFrom(MPU, 6);
+  Wire.requestFrom(MPU, (uint8_t)6);
   while(Wire.available() < 6);
   Gyro[0] = Wire.read() << 8 | Wire.read();
   Gyro[1] = Wire.read() << 8 | Wire.read();
