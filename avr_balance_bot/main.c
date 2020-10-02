@@ -5,7 +5,7 @@
  * Stepper 1 pins: PD2, PD3, PD4, PD5
  * Stepper 2 pins: PB0, PB1, PB2, PB3
  *
- * TWI for IMU-6050
+ * TWI for MPU-6050
  *
  * https://invensense.tdk.com/wp-content/uploads/2015/02/MPU-6000-Register-Map1.pdf
  * Author : Kim
