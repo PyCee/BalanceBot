@@ -2,10 +2,10 @@
  * BalanceBot.c
  *
  *
- * Stepper 1 pins: PD0, PD1, PD2, PD3
- * Stepper 2 pins: PB1, PB2, PB3, PB4
+ * Stepper 1 pins: PD2, PD3, PD4, PD5
+ * Stepper 2 pins: PB0, PB1, PB2, PB3
  *
- * 2 PC? pins for I2C for balence
+ * TWI for IMU-6050
  *
  * https://invensense.tdk.com/wp-content/uploads/2015/02/MPU-6000-Register-Map1.pdf
  * Author : Kim
@@ -88,8 +88,10 @@ int main(void)
 		}
 
 		// Map step_val to the appropriate output registers for each motor
+	    	// Map the stepper state to ports PD2, PD3, PD4, and PD5
 		PORTD &= ~0b00111100;
 		PORTD |= (step_val << 2);
+	    	// Map the stepper state to ports PB0, PB1, PB2, and PB3
 		PORTB &= ~0b00001111;
 		PORTB |= (step_val);
     }
